@@ -38,7 +38,21 @@ jobs:
       - name: Connect and pull
         run: |
           set -o allexport && source .env.prod  && set +o allexport
-          bash ./deploy.sh $SSH_USER $SSH_HOST $DEPLOY_WORKDIR .env.prod
+          echo "Copyng env file .env.prod to ${SSH_HOST}:${DEPLOY_WORKDIR}" as $SSH_USER
+          scp .env.prod $SSH_USER@$SSH_HOST:$DEPLOY_WORKDIR 
+          if [ $? -eq 0 ]; then
+              echo OK
+          else
+              echo FAIL
+              exit 1
+          fi
+          ssh $SSH_USER@$SSH_HOST \
+          "cd ${DEPLOY_WORKDIR} && \
+           git fetch origin && \
+           git reset --hard origin/main && \
+           docker compose -f docker-compose-prod.yaml pull && \
+           docker compose -f docker-compose-prod.yaml up --remove-orphans -d && \
+           docker image prune -af "
 
       - name: Cleanup
         run: rm -rf ~/.ssh
