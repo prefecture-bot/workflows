@@ -94,6 +94,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: prod
+          build-args: GITHUB_TOKEN=${{ secrets.TOKEN_FOR_BUILD }}
           # uncomment this line if we ever need prod builds for arm64 (e.g. mac m1)
 #          platforms: linux/amd64,linux/arm64
 
