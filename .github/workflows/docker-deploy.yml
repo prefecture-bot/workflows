@@ -1,0 +1,44 @@
+name: Prod Image Deploy
+
+# syntax is here: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore
+
+on:
+  workflow_call:
+    secrets:
+      DOTENV:
+        required: true
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:  
+  deploy:
+    name: Deploy image to PROD
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 'Create env file'
+        run: |
+          echo "$DOTENV" > .env.prod
+        env:
+          DOTENV: ${{ secrets.DOTENV }}
+
+      - name: Install SSH keys
+        run: |
+          set -o allexport && source .env.prod  && set +o allexport
+          install -m 600 -D /dev/null  ~/.ssh/id_rsa
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          ssh-keyscan -H $SSH_HOST > ~/.ssh/known_hosts
+
+      - name: Connect and pull
+        run: |
+          set -o allexport && source .env.prod  && set +o allexport
+          bash ./deploy.sh $SSH_USER $SSH_HOST $DEPLOY_WORKDIR .env.prod
+
+      - name: Cleanup
+        run: rm -rf ~/.ssh
